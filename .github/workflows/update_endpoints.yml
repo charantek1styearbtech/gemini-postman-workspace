@@ -28,7 +28,7 @@ jobs:
         env:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
           COLLECTION_UID: ${{ secrets.COLLECTION_UID}}
-        run: node updatePostmanCollection.js
+        run: node postman/scripts/updatePostmanCollection.js
 
       - name: Commit and Push Changes
         run: |
