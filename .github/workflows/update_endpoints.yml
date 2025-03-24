@@ -1,0 +1,37 @@
+name: Auto-Update Postman Endpoints
+
+on:
+  push:
+  schedule:
+    - cron: '*/1 * * * *'  # Runs every Monday
+  workflow_dispatch:
+
+jobs:
+  update-workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Verify Node.js Version
+        run: node -v
+
+      - name: Install Dependencies
+        run: npm install axios
+
+      - name: Fetch & Update Postman Collection
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+          COLLECTION_UID: ${{ secrets.COLLECTION_UID}}
+        run: node updatePostmanCollection.js
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git diff --quiet || (git add postman/collections/gemini_postman_collections.json && git commit -m "🔄 Auto-update Postman Collection" && git push)
