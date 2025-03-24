@@ -14,9 +14,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v18
+        uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: '18'
+
+      - name: Verify Node.js Version
+        run: node -v
 
       - name: Install Dependencies
         run: npm install axios
@@ -24,7 +27,7 @@ jobs:
       - name: Fetch & Update Postman Collection
         env:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
-          COLLECTION_UID: "your_collection_uid"
+          COLLECTION_UID: ${{ secrets.COLLECTION_UID}}
         run: node updatePostmanCollection.js
 
       - name: Commit and Push Changes
