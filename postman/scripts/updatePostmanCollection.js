@@ -9,7 +9,14 @@ const COLLECTION_UID = process.env.COLLECTION_UID;
 // Fetch latest Gemini API endpoints
 async function fetchGeminiEndpoints() {
     try {
-        const response = await axios.get(GEMINI_ENDPOINTS_URL);
+        const response = await axios.get(GEMINI_ENDPOINTS_URL,
+            {
+                headers: {
+                    "Authorization": `Bearer ${API_KEY}`,
+                    "Accept": "application/json"
+                }
+        }
+    );
         return response.data.endpoints.map(endpoint => endpoint.url);  // Extract URLs
     } catch (error) {
         console.error("❌ Error fetching Gemini API endpoints:", error);
