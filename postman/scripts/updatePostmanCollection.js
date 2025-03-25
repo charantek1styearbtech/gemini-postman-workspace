@@ -1,6 +1,5 @@
 const fs = require("fs");
 const axios = require("axios");
-require("dotenv").config(); // Load environment variables from .env file
 
 const POSTMAN_COLLECTION_PATH = "../collections/Gemini API.postman_collection.json";
 const GEMINI_ENDPOINTS_URL = "https://ai.google.dev/api/all-methods";
