@@ -1,18 +1,32 @@
 const fs = require("fs");
+const path = require("path");
 const axios = require("axios");
+require("dotenv").config(); // Load environment variables from .env file
 
-const POSTMAN_COLLECTION_PATH = "../collections/Gemini API.postman_collections.json";
+const POSTMAN_COLLECTION_PATH = path.join(__dirname, "../collections/Gemini API.postman_collection.json");
 const GEMINI_ENDPOINTS_URL = "https://ai.google.dev/api/all-methods";
 const POSTMAN_API_KEY = process.env.POSTMAN_API_KEY;
 const COLLECTION_UID = process.env.COLLECTION_UID;
+
+// Validate environment variables
+if (!POSTMAN_API_KEY || !COLLECTION_UID) {
+    console.error("❌ Error: POSTMAN_API_KEY or COLLECTION_UID is not set.");
+    process.exit(1);
+}
 
 // Fetch latest Gemini API endpoints
 async function fetchGeminiEndpoints() {
     try {
         const response = await axios.get(GEMINI_ENDPOINTS_URL);
-        return response.data.endpoints.map(endpoint => endpoint.url);  // Extract URLs
+        console.log("🔍 Gemini API Response:", JSON.stringify(response.data, null, 2)); // Debugging
+
+        if (!response.data || !response.data.endpoints) {
+            throw new Error("Invalid API response format. Expected 'endpoints' field.");
+        }
+
+        return response.data.endpoints.map(endpoint => endpoint.url); // Extract URLs
     } catch (error) {
-        console.error("❌ Error fetching Gemini API endpoints:", error);
+        console.error("❌ Error fetching Gemini API endpoints:", error.message);
         process.exit(1);
     }
 }
@@ -21,12 +35,18 @@ async function fetchGeminiEndpoints() {
 async function updatePostmanCollection() {
     try {
         const latestEndpoints = await fetchGeminiEndpoints();
+
+        if (!fs.existsSync(POSTMAN_COLLECTION_PATH)) {
+            throw new Error(`File not found: ${POSTMAN_COLLECTION_PATH}`);
+        }
+
         const postmanCollection = JSON.parse(fs.readFileSync(POSTMAN_COLLECTION_PATH, "utf8"));
+        console.log("📝 Current Postman Collection:", JSON.stringify(postmanCollection, null, 2)); // Debugging
 
         let endpointIndex = 0;
         postmanCollection.item.forEach(item => {
-            if (item.request && latestEndpoints[endpointIndex]) {
-                item.request.url.raw = latestEndpoints[endpointIndex];  // Replace URL
+            if (item.request && item.request.url && latestEndpoints[endpointIndex]) {
+                item.request.url.raw = latestEndpoints[endpointIndex]; // Replace URL
                 endpointIndex++;
             }
         });
@@ -34,7 +54,7 @@ async function updatePostmanCollection() {
         fs.writeFileSync(POSTMAN_COLLECTION_PATH, JSON.stringify(postmanCollection, null, 4));
         console.log("✅ Postman collection updated successfully!");
     } catch (error) {
-        console.error("❌ Error updating Postman collection:", error);
+        console.error("❌ Error updating Postman collection:", error.message);
         process.exit(1);
     }
 }
@@ -43,7 +63,8 @@ async function updatePostmanCollection() {
 async function uploadToPostman() {
     try {
         const postmanCollection = fs.readFileSync(POSTMAN_COLLECTION_PATH, "utf8");
-        await axios.put(
+
+        const response = await axios.put(
             `https://api.getpostman.com/collections/${COLLECTION_UID}`,
             { collection: JSON.parse(postmanCollection) },
             {
@@ -53,15 +74,21 @@ async function uploadToPostman() {
                 }
             }
         );
-        console.log("🚀 Updated collection successfully uploaded to Postman!");
+
+        console.log("🚀 Updated collection successfully uploaded to Postman!", response.data);
     } catch (error) {
-        console.error("❌ Error uploading collection to Postman:", error.response.data);
+        console.error("❌ Error uploading collection to Postman:", error.response ? error.response.data : error.message);
         process.exit(1);
     }
 }
 
-// Run the update process
+// Run the update process every minute
 (async () => {
     await updatePostmanCollection();
     await uploadToPostman();
+    setInterval(async () => {
+        console.log("⏳ Checking for Gemini API updates...");
+        await updatePostmanCollection();
+        await uploadToPostman();
+    }, 60 * 1000); // Every 60 seconds
 })();
