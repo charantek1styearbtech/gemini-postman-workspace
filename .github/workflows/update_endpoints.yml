@@ -25,9 +25,6 @@ jobs:
         run: npm install axios
 
       - name: Fetch & Update Postman Collection
-        env:
-          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
-          COLLECTION_UID: ${{ secrets.COLLECTION_UID}}
         run: node postman/scripts/updatePostmanCollection.js
 
       - name: Commit and Push Changes
